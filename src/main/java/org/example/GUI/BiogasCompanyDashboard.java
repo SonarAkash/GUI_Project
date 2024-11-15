@@ -1,17 +1,38 @@
 package org.example.GUI;
 
 import org.example.Util.GUITheme;
+import org.example.DAO.UserDAO;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowFocusListener;
 
 public class BiogasCompanyDashboard {
     private int userId;
     private JFrame dashboardFrame;
+    private JPanel statsPanel;
+    private UserDAO userDAO;
 
     public BiogasCompanyDashboard(int id) {
         this.userId = id;
+        this.userDAO = new UserDAO();
         createAndShowGUI();
+    }
+
+    private void refreshStats() {
+        statsPanel.removeAll();
+        
+        int totalBookings = userDAO.getTotalBookings(userId);
+        int activeBookings = userDAO.getActiveBookings(userId);
+        int completedBookings = userDAO.getCompletedBookings(userId);
+        
+        statsPanel.add(createStatCard("Total Bookings", String.valueOf(totalBookings), "📊"));
+        statsPanel.add(createStatCard("Active Bookings", String.valueOf(activeBookings), "🔄"));
+        statsPanel.add(createStatCard("Completed", String.valueOf(completedBookings), "✅"));
+        
+        statsPanel.revalidate();
+        statsPanel.repaint();
     }
 
     private void createAndShowGUI() {
@@ -49,17 +70,47 @@ public class BiogasCompanyDashboard {
         buttonsPanel.add(btnProfile);
         buttonsPanel.add(btnLogout);
 
-        // Add action listeners
-        btnViewWasteList.addActionListener(e -> new ViewBookingsB(userId));
-        btnViewWasteOrders.addActionListener(e -> new ViewWasteOrders(userId));
+        // Initialize statsPanel
+        statsPanel = new JPanel(new GridLayout(1, 3, 20, 0));
+        statsPanel.setOpaque(false);
+        
+        // Add action listeners with refresh mechanism
+        btnViewWasteList.addActionListener(e -> {
+            new ViewBookingsB(userId);
+            dashboardFrame.addWindowFocusListener(new WindowFocusListener() {
+                @Override
+                public void windowGainedFocus(WindowEvent e) {
+                    refreshStats();
+                }
+                @Override
+                public void windowLostFocus(WindowEvent e) {}
+            });
+        });
+        
+        btnViewWasteOrders.addActionListener(e -> {
+            new ViewWasteOrders(userId);
+            dashboardFrame.addWindowFocusListener(new WindowFocusListener() {
+                @Override
+                public void windowGainedFocus(WindowEvent e) {
+                    refreshStats();
+                }
+                @Override
+                public void windowLostFocus(WindowEvent e) {}
+            });
+        });
+
         btnLogout.addActionListener(e -> {
             dashboardFrame.dispose();
             MainWindow.createAndShowGUI();
         });
 
-        // Add components to main panel
+        // Initial statistics load
+        refreshStats();
+
+        // Update main panel layout
         mainPanel.add(headerPanel, BorderLayout.NORTH);
-        mainPanel.add(buttonsPanel, BorderLayout.CENTER);
+        mainPanel.add(statsPanel, BorderLayout.CENTER);
+        mainPanel.add(buttonsPanel, BorderLayout.SOUTH);
 
         dashboardFrame.add(mainPanel);
         dashboardFrame.setLocationRelativeTo(null);
@@ -86,6 +137,43 @@ public class BiogasCompanyDashboard {
         });
 
         return button;
+    }
+
+    private JPanel createStatCard(String title, String value, String emoji) {
+        JPanel card = new JPanel();
+        card.setLayout(new BorderLayout(5, 5));
+        card.setBackground(GUITheme.PRIMARY);
+        card.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(GUITheme.PRIMARY.darker(), 2),
+            BorderFactory.createEmptyBorder(15, 15, 15, 15)
+        ));
+
+        // Create title label
+        JLabel titleLabel = new JLabel(emoji + " " + title);
+        titleLabel.setForeground(GUITheme.TEXT_LIGHT);
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
+
+        // Create value label
+        JLabel valueLabel = new JLabel(value);
+        valueLabel.setForeground(GUITheme.TEXT_LIGHT);
+        valueLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        valueLabel.setHorizontalAlignment(SwingConstants.CENTER);
+
+        card.add(titleLabel, BorderLayout.NORTH);
+        card.add(valueLabel, BorderLayout.CENTER);
+
+        // Add hover effect
+        card.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                card.setBackground(GUITheme.PRIMARY.darker());
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                card.setBackground(GUITheme.PRIMARY);
+            }
+        });
+
+        return card;
     }
 }
 

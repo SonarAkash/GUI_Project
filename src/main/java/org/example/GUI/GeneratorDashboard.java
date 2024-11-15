@@ -1,16 +1,23 @@
 package org.example.GUI;
 
 import org.example.Util.GUITheme;
+import org.example.DAO.UserDAO;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.WindowFocusListener;
+import java.awt.event.WindowEvent;
+
 
 public class GeneratorDashboard {
     private int userId;
     private JFrame dashboardFrame;
+    private JPanel statsPanel;
+    private UserDAO userDAO;
 
     public GeneratorDashboard(int userId) {
         this.userId = userId;
+        this.userDAO = new UserDAO();
         createAndShowGUI();
     }
 
@@ -33,15 +40,11 @@ public class GeneratorDashboard {
         titleLabel.setForeground(GUITheme.TEXT_PRIMARY);
         headerPanel.add(titleLabel, BorderLayout.WEST);
 
-        // Stats Panel (can be enhanced with actual statistics)
-        JPanel statsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 10));
+        // Stats Panel with real data
+        statsPanel = new JPanel(new GridLayout(1, 3, 20, 0));
         statsPanel.setOpaque(false);
-        statsPanel.add(createStatsLabel("Total Uploads", "15"));
-        statsPanel.add(createStatsLabel("Active Bookings", "3"));
-        statsPanel.add(createStatsLabel("Completed", "12"));
-        headerPanel.add(statsPanel, BorderLayout.SOUTH);
-
-        // Buttons Panel
+        
+        // Create buttons panel first
         JPanel buttonsPanel = new JPanel(new GridLayout(2, 2, 20, 20));
         buttonsPanel.setOpaque(false);
 
@@ -57,14 +60,52 @@ public class GeneratorDashboard {
         buttonsPanel.add(btnViewBookings);
         buttonsPanel.add(btnLogout);
 
-        // Add action listeners
-        btnUploadWaste.addActionListener(e -> new UploadWasteForm(userId));
-        btnViewWaste.addActionListener(e -> new ViewWasteListF(userId));
-        btnViewBookings.addActionListener(e -> new ViewMyBookingsG(userId));
+        // Add action listeners with refresh mechanism
+        btnUploadWaste.addActionListener(e -> {
+            new UploadWasteForm(userId);
+            dashboardFrame.addWindowFocusListener(new WindowFocusListener() {
+                @Override
+                public void windowGainedFocus(WindowEvent e) {
+                    refreshStats();
+                }
+                @Override
+                public void windowLostFocus(WindowEvent e) {}
+            });
+        });
+        
+        btnViewWaste.addActionListener(e -> {
+            new ViewWasteListF(userId);
+            dashboardFrame.addWindowFocusListener(new WindowFocusListener() {
+                @Override
+                public void windowGainedFocus(WindowEvent e) {
+                    refreshStats();
+                }
+                @Override
+                public void windowLostFocus(WindowEvent e) {}
+            });
+        });
+        
+        btnViewBookings.addActionListener(e -> {
+            new ViewMyBookingsG(userId);
+            dashboardFrame.addWindowFocusListener(new WindowFocusListener() {
+                @Override
+                public void windowGainedFocus(WindowEvent e) {
+                    refreshStats();
+                }
+                @Override
+                public void windowLostFocus(WindowEvent e) {}
+            });
+        });
+
         btnLogout.addActionListener(e -> {
             dashboardFrame.dispose();
             MainWindow.createAndShowGUI();
         });
+
+        // Initial statistics load
+        refreshStats();
+
+        headerPanel.add(statsPanel, BorderLayout.SOUTH);
 
         // Add components to main panel
         mainPanel.add(headerPanel, BorderLayout.NORTH);
@@ -75,14 +116,41 @@ public class GeneratorDashboard {
         dashboardFrame.setVisible(true);
     }
 
-    private JLabel createStatsLabel(String title, String value) {
-        JLabel label = new JLabel("<html><center>" + value + "<br><small>" + title + "</small></center></html>");
-        label.setFont(GUITheme.LABEL_FONT);
-        label.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(GUITheme.PRIMARY),
-            BorderFactory.createEmptyBorder(10, 20, 10, 20)
+    private JPanel createStatCard(String title, String value, String emoji) {
+        JPanel card = new JPanel();
+        card.setLayout(new BorderLayout(5, 5));
+        card.setBackground(GUITheme.PRIMARY);
+        card.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(GUITheme.PRIMARY.darker(), 2),
+            BorderFactory.createEmptyBorder(15, 15, 15, 15)
         ));
-        return label;
+
+        // Create title label
+        JLabel titleLabel = new JLabel(emoji + " " + title);
+        titleLabel.setForeground(GUITheme.TEXT_LIGHT);
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
+
+        // Create value label
+        JLabel valueLabel = new JLabel(value);
+        valueLabel.setForeground(GUITheme.TEXT_LIGHT);
+        valueLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        valueLabel.setHorizontalAlignment(SwingConstants.CENTER);
+
+        card.add(titleLabel, BorderLayout.NORTH);
+        card.add(valueLabel, BorderLayout.CENTER);
+
+        // Add hover effect
+        card.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                card.setBackground(GUITheme.PRIMARY.darker());
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                card.setBackground(GUITheme.PRIMARY);
+            }
+        });
+
+        return card;
     }
 
     private JButton createDashboardButton(String text, String emoji) {
@@ -105,5 +173,20 @@ public class GeneratorDashboard {
         });
 
         return button;
+    }
+
+    private void refreshStats() {
+        statsPanel.removeAll();
+        
+        int totalUploads = userDAO.getTotalUploads(userId);
+        int activeBookings = userDAO.getActiveBookingsForGenerator(userId);
+        int completedBookings = userDAO.getCompletedBookingsForGenerator(userId);
+        
+        statsPanel.add(createStatCard("Total Uploads", String.valueOf(totalUploads), "⬆️"));
+        statsPanel.add(createStatCard("Active Bookings", String.valueOf(activeBookings), "🔄"));
+        statsPanel.add(createStatCard("Completed", String.valueOf(completedBookings), "✅"));
+        
+        statsPanel.revalidate();
+        statsPanel.repaint();
     }
 }
