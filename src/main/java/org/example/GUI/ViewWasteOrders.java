@@ -36,7 +36,7 @@ public class ViewWasteOrders {
         mainPanel.add(headerLabel, BorderLayout.NORTH);
 
         // Define table columns
-        String[] columns = {"Order ID", "Generator Email", "Waste Description", "Order Date", "Status"};
+        String[] columns = {"Order ID", "Generator Email", "Waste Description", "Booked Quantity", "Order Date", "Status"};
         
         // Create table model
         tableModel = new DefaultTableModel(columns, 0) {
@@ -89,6 +89,7 @@ public class ViewWasteOrders {
                 booking.getId(),
                 booking.getGeneratorEmail(),
                 booking.getWasteDescription(),
+                booking.getBookedQuantity() + " kg",
                 booking.getCreatedAt(),
                 booking.getStatus()
             });

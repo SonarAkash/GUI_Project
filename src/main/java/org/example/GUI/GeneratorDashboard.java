@@ -2,11 +2,14 @@ package org.example.GUI;
 
 import org.example.Util.GUITheme;
 import org.example.DAO.UserDAO;
+import org.example.DAO.NotificationDAO;
+import org.example.Model.Notification;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowFocusListener;
 import java.awt.event.WindowEvent;
+import java.util.List;
 
 
 public class GeneratorDashboard {
@@ -53,12 +56,14 @@ public class GeneratorDashboard {
         JButton btnViewWaste = createDashboardButton("View My Waste", "📦");
         JButton btnViewBookings = createDashboardButton("My Bookings", "📋");
         JButton btnLogout = createDashboardButton("Logout", "🚪");
+        JButton btnNotifications = createDashboardButton("Notifications", "📋");
 
         // Add buttons to panel
         buttonsPanel.add(btnUploadWaste);
         buttonsPanel.add(btnViewWaste);
         buttonsPanel.add(btnViewBookings);
         buttonsPanel.add(btnLogout);
+        buttonsPanel.add(btnNotifications);
 
         // Add action listeners with refresh mechanism
         btnUploadWaste.addActionListener(e -> {
@@ -101,6 +106,8 @@ public class GeneratorDashboard {
             dashboardFrame.dispose();
             MainWindow.createAndShowGUI();
         });
+
+        btnNotifications.addActionListener(e -> showNotifications());
 
         // Initial statistics load
         refreshStats();
@@ -188,5 +195,33 @@ public class GeneratorDashboard {
         
         statsPanel.revalidate();
         statsPanel.repaint();
+    }
+
+    private void showNotifications() {
+        NotificationDAO notificationDAO = new NotificationDAO();
+        List<Notification> notifications = notificationDAO.getUnreadNotifications(userId);
+        
+        if (notifications.isEmpty()) {
+            JOptionPane.showMessageDialog(
+                dashboardFrame,
+                "No new notifications",
+                "Notifications",
+                JOptionPane.INFORMATION_MESSAGE
+            );
+            return;
+        }
+
+        StringBuilder message = new StringBuilder("New Notifications:\n\n");
+        for (Notification notification : notifications) {
+            message.append("- ").append(notification.getMessage()).append("\n");
+            notificationDAO.markAsRead(notification.getId());
+        }
+
+        JOptionPane.showMessageDialog(
+            dashboardFrame,
+            message.toString(),
+            "Notifications",
+            JOptionPane.INFORMATION_MESSAGE
+        );
     }
 }

@@ -52,6 +52,7 @@ public class ViewMyBookingsG {
             "Booking ID",
             "Waste Description",
             "Biogas Company",
+            "Booked Quantity",
             "Status",
             "Booking Date",
             "Action"
@@ -60,7 +61,7 @@ public class ViewMyBookingsG {
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return column == 5; // Only allow editing of the Action column
+                return column == 6; // Changed from 5 to 6 to match the Action column index
             }
         };
         
@@ -73,8 +74,9 @@ public class ViewMyBookingsG {
         bookingsTable.getColumnModel().getColumn(1).setPreferredWidth(250);
         bookingsTable.getColumnModel().getColumn(2).setPreferredWidth(150);
         bookingsTable.getColumnModel().getColumn(3).setPreferredWidth(100);
-        bookingsTable.getColumnModel().getColumn(4).setPreferredWidth(150);
-        bookingsTable.getColumnModel().getColumn(5).setPreferredWidth(100);
+        bookingsTable.getColumnModel().getColumn(4).setPreferredWidth(100);  // Status
+        bookingsTable.getColumnModel().getColumn(5).setPreferredWidth(150);  // Booking Date
+        bookingsTable.getColumnModel().getColumn(6).setPreferredWidth(100);  // Action
 
         // Create scroll pane
         JScrollPane scrollPane = new JScrollPane(bookingsTable);
@@ -106,22 +108,19 @@ public class ViewMyBookingsG {
         java.util.List<Booking> bookings = bookingDAO.getBookingsByGenerator(generatorId);
         
         for (Booking booking : bookings) {
-            String actionButtonText = "";
-            if (booking.getStatus().equals("PENDING")) {
-                actionButtonText = "Cancel";
-            } else if (booking.getStatus().equals("BOOKED")) {
+            String actionButtonText = "-";
+            if (booking.getStatus().equals("BOOKED")) {
                 actionButtonText = "Complete";
-            } else {
-                actionButtonText = "-";
             }
             
             tableModel.addRow(new Object[]{
                 booking.getId(),
                 booking.getWasteDescription(),
                 booking.getBiogasCompanyEmail(),
+                booking.getBookedQuantity() + " kg",
                 booking.getStatus(),
                 booking.getCreatedAt(),
-                actionButtonText
+                booking.getStatus().equals("BOOKED") ? "Complete" : "-"  // Simplified action text logic
             });
         }
     }
@@ -131,46 +130,14 @@ public class ViewMyBookingsG {
             @Override
             public void actionPerformed(ActionEvent e) {
                 int row = Integer.parseInt(e.getActionCommand());
-                String status = (String) bookingsTable.getValueAt(row, 3);
+                String status = (String) bookingsTable.getValueAt(row, 4);
                 int bookingId = (int) bookingsTable.getValueAt(row, 0);
                 
-                if (status.equals("PENDING")) {
-                    handleCancelBooking(bookingId);
-                } else if (status.equals("BOOKED")) {
+                if (status.equals("BOOKED")) {
                     handleCompleteBooking(bookingId);
                 }
             }
-        }, 5);
-    }
-
-    private void handleCancelBooking(int bookingId) {
-        int confirm = JOptionPane.showConfirmDialog(
-            frame,
-            "Are you sure you want to cancel this booking?",
-            "Confirm Cancellation",
-            JOptionPane.YES_NO_OPTION,
-            JOptionPane.WARNING_MESSAGE
-        );
-
-        if (confirm == JOptionPane.YES_OPTION) {
-            BookingDAO bookingDAO = new BookingDAO();
-            if (bookingDAO.cancelBooking(bookingId)) {
-                JOptionPane.showMessageDialog(
-                    frame,
-                    "Booking cancelled successfully!",
-                    "Success",
-                    JOptionPane.INFORMATION_MESSAGE
-                );
-                loadBookings(); // Refresh the table
-            } else {
-                JOptionPane.showMessageDialog(
-                    frame,
-                    "Failed to cancel booking. Please try again.",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE
-                );
-            }
-        }
+        }, 6);
     }
 
     private void handleCompleteBooking(int bookingId) {

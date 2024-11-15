@@ -7,17 +7,20 @@ public class Waste {
     private String description;
     private String generatorName;
     private Timestamp createdAt;
-    private String status;
     private String imagePath;
+    private double quantity;
+    private double remainingQuantity;
 
     public Waste(int id, String description, String generatorName, 
-                Timestamp createdAt, String status, String imagePath) {
+                Timestamp createdAt,  String imagePath,
+                double quantity, double remainingQuantity) {
         this.id = id;
         this.description = description;
         this.generatorName = generatorName;
         this.createdAt = createdAt;
-        this.status = status;
         this.imagePath = imagePath;
+        this.quantity = quantity;
+        this.remainingQuantity = remainingQuantity;
     }
 
     public int getId() {
@@ -52,20 +55,28 @@ public class Waste {
         this.createdAt = createdAt;
     }
 
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
     public String getImagePath() {
         return imagePath;
     }
 
     public void setImagePath(String imagePath) {
         this.imagePath = imagePath;
+    }
+
+    public double getQuantity() {
+        return quantity;
+    }
+
+    public void setQuantity(double quantity) {
+        this.quantity = quantity;
+    }
+
+    public double getRemainingQuantity() {
+        return remainingQuantity;
+    }
+
+    public void setRemainingQuantity(double remainingQuantity) {
+        this.remainingQuantity = remainingQuantity;
     }
 
     

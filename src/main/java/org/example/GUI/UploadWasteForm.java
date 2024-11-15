@@ -9,52 +9,70 @@ import java.io.File;
 import java.util.List;
 import java.util.ArrayList;
 
+
 public class UploadWasteForm {
     private final JFrame frame;
     private final List<File> selectedImages;
     private final JLabel imageCountLabel;
     private final JTextArea txtDescription;
     private final JButton btnSubmit;
-
-    public UploadWasteForm(int userId) {
-        selectedImages = new ArrayList<>();
-        
-        // Create and setup main frame
-        frame = new JFrame("Upload Waste");
-        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        frame.setSize(600, 500);
-        frame.setLocationRelativeTo(null);
-        GUITheme.styleFrame(frame);
-
-        // Main panel with padding
-        JPanel mainPanel = GUITheme.createStyledPanel();
-        mainPanel.setLayout(new BorderLayout(20, 20));
-
-        // Header
-        JLabel titleLabel = new JLabel("Upload Waste Details", SwingConstants.CENTER);
-        titleLabel.setFont(GUITheme.HEADING_FONT);
-        titleLabel.setForeground(GUITheme.TEXT_PRIMARY);
-        mainPanel.add(titleLabel, BorderLayout.NORTH);
-
-        // Form panel
-        JPanel formPanel = new JPanel(new GridBagLayout());
-        formPanel.setOpaque(false);
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(10, 10, 10, 10);
-        gbc.gridwidth = GridBagConstraints.REMAINDER;
-
-        // Description area
-        JLabel lblDescription = new JLabel("Description:");
-        lblDescription.setFont(GUITheme.LABEL_FONT);
-        txtDescription = new JTextArea(5, 30);
-        txtDescription.setFont(GUITheme.LABEL_FONT);
-        txtDescription.setLineWrap(true);
-        txtDescription.setWrapStyleWord(true);
-        txtDescription.setBorder(BorderFactory.createCompoundBorder(
+        private JTextField txtQuantity;
+    
+        public UploadWasteForm(int userId) {
+            selectedImages = new ArrayList<>();
+    
+            
+            
+            // Create and setup main frame
+            frame = new JFrame("Upload Waste");
+            frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+            frame.setSize(600, 500);
+            frame.setLocationRelativeTo(null);
+            GUITheme.styleFrame(frame);
+    
+            // Main panel with padding
+            JPanel mainPanel = GUITheme.createStyledPanel();
+            mainPanel.setLayout(new BorderLayout(20, 20));
+    
+            // Header
+            JLabel titleLabel = new JLabel("Upload Waste Details", SwingConstants.CENTER);
+            titleLabel.setFont(GUITheme.HEADING_FONT);
+            titleLabel.setForeground(GUITheme.TEXT_PRIMARY);
+            mainPanel.add(titleLabel, BorderLayout.NORTH);
+    
+            // Form panel
+            JPanel formPanel = new JPanel(new GridBagLayout());
+            formPanel.setOpaque(false);
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+            gbc.insets = new Insets(10, 10, 10, 10);
+            gbc.gridwidth = GridBagConstraints.REMAINDER;
+    
+            // Description area
+            JLabel lblDescription = new JLabel("Description:");
+            lblDescription.setFont(GUITheme.LABEL_FONT);
+            txtDescription = new JTextArea(5, 30);
+            txtDescription.setFont(GUITheme.LABEL_FONT);
+            txtDescription.setLineWrap(true);
+            txtDescription.setWrapStyleWord(true);
+            txtDescription.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(GUITheme.PRIMARY),
+                BorderFactory.createEmptyBorder(8, 8, 8, 8)
+            ));
+    
+    
+            JLabel lblQuantity = new JLabel("Quantity (kg):");
+            lblQuantity.setFont(GUITheme.LABEL_FONT);
+            txtQuantity = new JTextField(10);
+        txtQuantity.setFont(GUITheme.LABEL_FONT);
+        txtQuantity.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(GUITheme.PRIMARY),
             BorderFactory.createEmptyBorder(8, 8, 8, 8)
         ));
+
+        // Add to form panel before description
+        formPanel.add(lblQuantity, gbc);
+        formPanel.add(txtQuantity, gbc);
         
         JScrollPane scrollPane = new JScrollPane(txtDescription);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
@@ -125,6 +143,16 @@ public class UploadWasteForm {
             showError("Please select at least one image.");
             return;
         }
+        try {
+            double quantity = Double.parseDouble(txtQuantity.getText().trim());
+            if (quantity <= 0) {
+                showError("Quantity must be greater than 0.");
+                return;
+            }
+        } catch (NumberFormatException ex) {
+            showError("Please enter a valid quantity number.");
+            return;
+        }
 
         btnSubmit.setEnabled(false);
         btnSubmit.setText("Uploading...");
@@ -135,6 +163,7 @@ public class UploadWasteForm {
                 ImageUploadService uploadService = new ImageUploadService();
                 return uploadService.uploadWasteWithImages(
                     txtDescription.getText().trim(),
+                    Double.parseDouble(txtQuantity.getText().trim()),
                     selectedImages,
                     userId
                 );

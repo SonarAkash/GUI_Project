@@ -14,34 +14,66 @@ import java.nio.file.StandardCopyOption;
 public class ImageUploadService {
 
     // Method to upload waste details and images
-    public boolean uploadWasteWithImages(String description, List<File> images, int userId) {
-        // Step 1: Insert waste entry into the 'waste' table
-        String wasteQuery = "INSERT INTO waste (description, generator_id, status) VALUES (?, ?, 'AVAILABLE')";
+    public boolean uploadWasteWithImages(String description, double quantity, List<File> images, int userId) {
+        Connection connection = null;
+        try {
+            connection = DatabaseConnection.getConnection();
+            connection.setAutoCommit(false);  // Start transaction
 
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement stmt = connection.prepareStatement(wasteQuery, Statement.RETURN_GENERATED_KEYS)) {
+            // Step 1: Insert waste entry with quantity
+            String wasteQuery = """
+                INSERT INTO waste (description, generator_id, status, quantity, remaining_quantity) 
+                VALUES (?, ?, 'AVAILABLE', ?, ?)
+            """;
 
-            stmt.setString(1, description);
-            stmt.setInt(2, userId);
-            int rowsAffected = stmt.executeUpdate();
+            int wasteId;
+            try (PreparedStatement stmt = connection.prepareStatement(wasteQuery, Statement.RETURN_GENERATED_KEYS)) {
+                stmt.setString(1, description);
+                stmt.setInt(2, userId);
+                stmt.setDouble(3, quantity);
+                stmt.setDouble(4, quantity);  // Initially remaining = total
+                int rowsAffected = stmt.executeUpdate();
 
-            if (rowsAffected > 0) {
-                ResultSet generatedKeys = stmt.getGeneratedKeys();
-                if (generatedKeys.next()) {
-                    int wasteId = generatedKeys.getInt(1);  // Get the generated waste_id
+                if (rowsAffected > 0) {
+                    ResultSet generatedKeys = stmt.getGeneratedKeys();
+                    if (generatedKeys.next()) {
+                        wasteId = generatedKeys.getInt(1);
 
-                    // Step 2: Store images and save paths in 'waste_images' table
-                    for (File image : images) {
-                        String imagePath = saveImageToFileSystem(image);  // Save image and get path
-                        saveImagePathToDB(connection, wasteId, imagePath);  // Save the image path in DB
+                        // Step 2: Store images and save paths
+                        for (File image : images) {
+                            String imagePath = saveImageToFileSystem(image);
+                            saveImagePathToDB(connection, wasteId, imagePath);
+                        }
+                        
+                        connection.commit();
+                        return true;
                     }
-                    return true;
                 }
             }
+            
+            connection.rollback();
+            return false;
+
         } catch (SQLException | IOException e) {
+            if (connection != null) {
+                try {
+                    connection.rollback();
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
+            }
             e.printStackTrace();
+            return false;
+        } finally {
+            if (connection != null) {
+                try {
+                    connection.setAutoCommit(true);
+                    connection.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
         }
-        return false;
     }
 
     // Method to save image to the file system

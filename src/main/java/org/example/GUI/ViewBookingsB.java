@@ -8,8 +8,14 @@ import org.example.Util.GUITheme;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableCellEditor;
+import javax.swing.table.TableCellRenderer;
+import javax.swing.table.TableColumnModel;
+
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
+import java.awt.event.ActionListener;
 import java.util.List;
 
 public class ViewBookingsB {
@@ -47,11 +53,11 @@ public class ViewBookingsB {
         leftPanel.add(headerLabel, BorderLayout.NORTH);
 
         // Create table
-        String[] columns = {"ID", "Description", "Generator", "Images", "Action"};
+        String[] columns = {"ID", "Description", "Generator", "Quantity", "Images", "Action"};
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return column == 4; // Only allow editing of the Action column
+                return column == 5;  // Only allow editing of the Action column
             }
         };
         
@@ -63,11 +69,12 @@ public class ViewBookingsB {
         wasteTable.getColumnModel().getColumn(0).setPreferredWidth(50);
         wasteTable.getColumnModel().getColumn(1).setPreferredWidth(300);
         wasteTable.getColumnModel().getColumn(2).setPreferredWidth(150);
-        wasteTable.getColumnModel().getColumn(3).setPreferredWidth(200);
-        wasteTable.getColumnModel().getColumn(4).setPreferredWidth(100);
+        wasteTable.getColumnModel().getColumn(3).setPreferredWidth(100);
+        wasteTable.getColumnModel().getColumn(4).setPreferredWidth(200);
+        wasteTable.getColumnModel().getColumn(5).setPreferredWidth(100);
         
         // Set custom renderer for images column
-        wasteTable.getColumnModel().getColumn(3).setCellRenderer(new ImageRenderer());
+        wasteTable.getColumnModel().getColumn(4).setCellRenderer(new ImageRenderer());
 
         // Create scroll pane for table
         JScrollPane scrollPane = new JScrollPane(wasteTable);
@@ -109,28 +116,32 @@ public class ViewBookingsB {
         List<Waste> wasteList = wasteDAO.getAvailableWaste();
         
         for (Waste waste : wasteList) {
-            JButton bookButton = new JButton("Book");
-            GUITheme.styleButton(bookButton);
-            bookButton.setBackground(GUITheme.ACCENT);
-            
             tableModel.addRow(new Object[]{
                 waste.getId(),
                 waste.getDescription(),
                 waste.getGeneratorName(),
-                waste.getImagePath(),
-                "Book"
+                waste.getRemainingQuantity() + " kg",
+                waste.getImagePath() != null ? waste.getImagePath() : "No images",
+                "Select Quantity"
             });
         }
 
-        // Add button column
-        new ButtonColumn(wasteTable, new AbstractAction() {
+        // Add action button renderer and editor
+        Action action = new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                int row = Integer.parseInt(e.getActionCommand());
-                int wasteId = (int) wasteTable.getValueAt(row, 0);
-                handleBooking(wasteId);
+                JTable table = (JTable)e.getSource();
+                int modelRow = Integer.parseInt(e.getActionCommand());
+                int wasteId = (int) table.getModel().getValueAt(modelRow, 0);
+                String quantityStr = ((String) table.getModel().getValueAt(modelRow, 3))
+                    .replace(" kg", "");
+                double availableQuantity = Double.parseDouble(quantityStr);
+                handleQuantitySelection(modelRow, wasteId, availableQuantity);
             }
-        }, 4);
+        };
+
+        ButtonColumn buttonColumn = new ButtonColumn(wasteTable, action, 5);
+        buttonColumn.setMnemonic(KeyEvent.VK_D);
     }
 
     private void setupTableListeners() {
@@ -140,7 +151,7 @@ public class ViewBookingsB {
                 int row = wasteTable.rowAtPoint(evt.getPoint());
                 int col = wasteTable.columnAtPoint(evt.getPoint());
                 
-                if (row >= 0 && col == 3) {
+                if (row >= 0 && col == 4) {
                     String imagePaths = (String) wasteTable.getValueAt(row, col);
                     showImagePreview(imagePaths);
                 }
@@ -181,21 +192,84 @@ public class ViewBookingsB {
         imagePanel.repaint();
     }
 
-    private void handleBooking(int wasteId) {
+    private void handleQuantitySelection(int row, int wasteId, double availableQuantity) {
+        JPanel panel = new JPanel(new GridLayout(3, 1, 5, 5));
+        
+        JLabel availableLabel = new JLabel("Available Quantity: " + availableQuantity + " kg");
+        JLabel quantityLabel = new JLabel("Enter quantity to book (kg):");
+        JTextField quantityField = new JTextField(10);
+        
+        panel.add(availableLabel);
+        panel.add(quantityLabel);
+        panel.add(quantityField);
+
+        int result = JOptionPane.showConfirmDialog(
+            frame,
+            panel,
+            "Select Quantity",
+            JOptionPane.OK_CANCEL_OPTION,
+            JOptionPane.PLAIN_MESSAGE
+        );
+
+        if (result == JOptionPane.OK_OPTION) {
+            try {
+                double requestedQuantity = Double.parseDouble(quantityField.getText().trim());
+                
+                // Validate quantity
+                if (requestedQuantity <= 0) {
+                    JOptionPane.showMessageDialog(
+                        frame,
+                        "Quantity must be greater than 0",
+                        "Invalid Input",
+                        JOptionPane.ERROR_MESSAGE
+                    );
+                    return;
+                }
+                
+                if (requestedQuantity > availableQuantity) {
+                    JOptionPane.showMessageDialog(
+                        frame,
+                        "Requested quantity cannot exceed available quantity",
+                        "Invalid Input",
+                        JOptionPane.ERROR_MESSAGE
+                    );
+                    return;
+                }
+
+                // Show confirmation dialog with Book button
+                showBookingConfirmation(wasteId, requestedQuantity);
+
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(
+                    frame,
+                    "Please enter a valid number",
+                    "Invalid Input",
+                    JOptionPane.ERROR_MESSAGE
+                );
+            }
+        }
+    }
+
+    private void showBookingConfirmation(int wasteId, double requestedQuantity) {
+        JPanel confirmPanel = new JPanel(new GridLayout(2, 1, 5, 5));
+        confirmPanel.add(new JLabel("Selected Quantity: " + requestedQuantity + " kg"));
+        confirmPanel.add(new JLabel("Do you want to proceed with booking?"));
+
         int confirm = JOptionPane.showConfirmDialog(
             frame,
-            "Are you sure you want to book this waste?",
+            confirmPanel,
             "Confirm Booking",
             JOptionPane.YES_NO_OPTION,
             JOptionPane.QUESTION_MESSAGE
         );
 
         if (confirm == JOptionPane.YES_OPTION) {
+            // Proceed with booking
             BookingDAO bookingDAO = new BookingDAO();
-            if (bookingDAO.bookWaste(wasteId, biogasCompanyId)) {
+            if (bookingDAO.bookWaste(wasteId, biogasCompanyId, requestedQuantity)) {
                 JOptionPane.showMessageDialog(
                     frame,
-                    "Waste booked successfully!",
+                    "Successfully booked " + requestedQuantity + " kg of waste!",
                     "Success",
                     JOptionPane.INFORMATION_MESSAGE
                 );
@@ -208,6 +282,74 @@ public class ViewBookingsB {
                     JOptionPane.ERROR_MESSAGE
                 );
             }
+        }
+    }
+
+    // Add this ButtonColumn inner class if you don't have it already
+    public class ButtonColumn extends AbstractCellEditor
+            implements TableCellRenderer, TableCellEditor, ActionListener {
+        private JButton renderButton;
+        private JButton editButton;
+        private String text;
+        private Action action;
+
+        public ButtonColumn(JTable table, Action action, int column) {
+            this.action = action;
+            renderButton = new JButton();
+            editButton = new JButton();
+            editButton.setFocusPainted(false);
+            editButton.addActionListener(this);
+
+            TableColumnModel columnModel = table.getColumnModel();
+            columnModel.getColumn(column).setCellRenderer(this);
+            columnModel.getColumn(column).setCellEditor(this);
+        }
+
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value,
+                boolean isSelected, boolean hasFocus, int row, int column) {
+            if (hasFocus) {
+                renderButton.setForeground(table.getForeground());
+                renderButton.setBackground(UIManager.getColor("Button.background"));
+            } else if (isSelected) {
+                renderButton.setForeground(table.getSelectionForeground());
+                renderButton.setBackground(table.getSelectionBackground());
+            } else {
+                renderButton.setForeground(table.getForeground());
+                renderButton.setBackground(UIManager.getColor("Button.background"));
+            }
+
+            renderButton.setText((value == null) ? "" : value.toString());
+            return renderButton;
+        }
+
+        @Override
+        public Component getTableCellEditorComponent(JTable table, Object value,
+                boolean isSelected, int row, int column) {
+            text = (value == null) ? "" : value.toString();
+            editButton.setText(text);
+            return editButton;
+        }
+
+        @Override
+        public Object getCellEditorValue() {
+            return text;
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            fireEditingStopped();
+            ActionEvent event = new ActionEvent(
+                wasteTable,
+                ActionEvent.ACTION_PERFORMED,
+                "" + wasteTable.getSelectedRow()
+            );
+            action.actionPerformed(event);
+        }
+
+        public void setMnemonic(int key) {
+            renderButton.setMnemonic(key);
+            editButton.setMnemonic(key);
         }
     }
 } 

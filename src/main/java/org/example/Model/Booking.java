@@ -4,27 +4,47 @@ import java.sql.Timestamp;
 
 public class Booking {
     private int id;
-    private int wasteId;
-    private String wasteDescription;
-    private String generatorEmail;
+    private int waste_id;
+    private String waste_description;
+    private String generator_email;
+    private String biogas_company_email;
     private String status;
-    private Timestamp createdAt;
-    private Timestamp completedAt;
-    private String biogasCompanyEmail;
+    private Timestamp created_at;
+    private Timestamp completed_at;
+    private double booked_quantity;
+    private double remaining_quantity;
+    private double total_quantity;
 
-    // Constructor
-    public Booking(int id, int wasteId, String wasteDescription, 
-                  String generatorEmail, String status, 
-                  Timestamp createdAt, Timestamp completedAt) {
+    // Constructor for getBookingsByBiogasCompany
+    public Booking(int id, int waste_id, String waste_description, 
+                  String generator_email, String status, 
+                  Timestamp created_at, Timestamp completed_at,
+                  double booked_quantity) {
         this.id = id;
-        this.wasteId = wasteId;
-        this.wasteDescription = wasteDescription;
-        this.generatorEmail = generatorEmail;
+        this.waste_id = waste_id;
+        this.waste_description = waste_description;
+        this.generator_email = generator_email;
         this.status = status;
-        this.createdAt = createdAt;
-        this.completedAt = completedAt;
+        this.created_at = created_at;
+        this.completed_at = completed_at;
+        this.booked_quantity = booked_quantity;
     }
 
+    // Constructor for getBookingsByGenerator
+    public Booking(int id, String waste_description, 
+                  String biogas_company_email, String status,
+                  Timestamp created_at, Timestamp completed_at,
+                  double booked_quantity) {
+        this.id = id;
+        this.waste_description = waste_description;
+        this.biogas_company_email = biogas_company_email;
+        this.status = status;
+        this.created_at = created_at;
+        this.completed_at = completed_at;
+        this.booked_quantity = booked_quantity;
+    }
+
+    // Getters and Setters
     public int getId() {
         return id;
     }
@@ -34,27 +54,35 @@ public class Booking {
     }
 
     public int getWasteId() {
-        return wasteId;
+        return waste_id;
     }
 
-    public void setWasteId(int wasteId) {
-        this.wasteId = wasteId;
+    public void setWasteId(int waste_id) {
+        this.waste_id = waste_id;
     }
 
     public String getWasteDescription() {
-        return wasteDescription;
+        return waste_description;
     }
 
-    public void setWasteDescription(String wasteDescription) {
-        this.wasteDescription = wasteDescription;
+    public void setWasteDescription(String waste_description) {
+        this.waste_description = waste_description;
     }
 
     public String getGeneratorEmail() {
-        return generatorEmail;
+        return generator_email;
     }
 
-    public void setGeneratorEmail(String generatorEmail) {
-        this.generatorEmail = generatorEmail;
+    public void setGeneratorEmail(String generator_email) {
+        this.generator_email = generator_email;
+    }
+
+    public String getBiogasCompanyEmail() {
+        return biogas_company_email;
+    }
+
+    public void setBiogasCompanyEmail(String biogas_company_email) {
+        this.biogas_company_email = biogas_company_email;
     }
 
     public String getStatus() {
@@ -66,30 +94,59 @@ public class Booking {
     }
 
     public Timestamp getCreatedAt() {
-        return createdAt;
+        return created_at;
     }
 
-    public void setCreatedAt(Timestamp createdAt) {
-        this.createdAt = createdAt;
+    public void setCreatedAt(Timestamp created_at) {
+        this.created_at = created_at;
     }
 
     public Timestamp getCompletedAt() {
-        return completedAt;
+        return completed_at;
     }
 
-    public void setCompletedAt(Timestamp completedAt) {
-        this.completedAt = completedAt;
+    public void setCompletedAt(Timestamp completed_at) {
+        this.completed_at = completed_at;
     }
 
-    public String getBiogasCompanyEmail() {
-        return biogasCompanyEmail;
+    public double getBookedQuantity() {
+        return booked_quantity;
     }
 
-    public void setBiogasCompanyEmail(String biogasCompanyEmail) {
-        this.biogasCompanyEmail = biogasCompanyEmail;
+    public void setBookedQuantity(double booked_quantity) {
+        this.booked_quantity = booked_quantity;
     }
 
-    
-    // Getters and setters
-    // ... add all necessary getters and setters ...
+    public double getRemainingQuantity() {
+        return remaining_quantity;
+    }
+
+    public void setRemainingQuantity(double remaining_quantity) {
+        this.remaining_quantity = remaining_quantity;
+    }
+
+    public double getTotalQuantity() {
+        return total_quantity;
+    }
+
+    public void setTotalQuantity(double total_quantity) {
+        this.total_quantity = total_quantity;
+    }
+
+    @Override
+    public String toString() {
+        return "Booking{" +
+                "id=" + id +
+                ", waste_id=" + waste_id +
+                ", waste_description='" + waste_description + '\'' +
+                ", generator_email='" + generator_email + '\'' +
+                ", biogas_company_email='" + biogas_company_email + '\'' +
+                ", status='" + status + '\'' +
+                ", created_at=" + created_at +
+                ", completed_at=" + completed_at +
+                ", booked_quantity=" + booked_quantity +
+                ", remaining_quantity=" + remaining_quantity +
+                ", total_quantity=" + total_quantity +
+                '}';
+    }
 } 

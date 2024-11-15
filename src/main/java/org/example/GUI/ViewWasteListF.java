@@ -42,7 +42,7 @@ public class ViewWasteListF {
         headerPanel.add(refreshButton, BorderLayout.EAST);
         
         // Setup table
-        String[] columns = {"Waste ID", "Description", "Images"};
+        String[] columns = {"Waste ID", "Description", "Total Quantity", "Remaining", "Images"};
         model = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -90,10 +90,12 @@ public class ViewWasteListF {
         // Set column widths
         wasteTable.getColumnModel().getColumn(0).setPreferredWidth(70);
         wasteTable.getColumnModel().getColumn(1).setPreferredWidth(200);
-        wasteTable.getColumnModel().getColumn(2).setPreferredWidth(330);
+        wasteTable.getColumnModel().getColumn(2).setPreferredWidth(100);
+        wasteTable.getColumnModel().getColumn(3).setPreferredWidth(100);
+        wasteTable.getColumnModel().getColumn(4).setPreferredWidth(230);
         
         // Set custom renderer for images column
-        wasteTable.getColumnModel().getColumn(2).setCellRenderer(new ImageRenderer());
+        wasteTable.getColumnModel().getColumn(4).setCellRenderer(new ImageRenderer());
         
         // Style table
         wasteTable.setFont(new Font("Arial", Font.PLAIN, 12));
@@ -109,10 +111,10 @@ public class ViewWasteListF {
         wasteTable.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                if (e.getClickCount() == 2) { // Double click
+                if (e.getClickCount() == 2) {
                     int row = wasteTable.rowAtPoint(e.getPoint());
                     int col = wasteTable.columnAtPoint(e.getPoint());
-                    if (col == 2) { // Images column
+                    if (col == 4) {
                         String imagePaths = (String) wasteTable.getValueAt(row, col);
                         showImagePreviewDialog(imagePaths);
                     }
@@ -138,26 +140,54 @@ public class ViewWasteListF {
     }
 
     private void showImagePreviewDialog(String imagePaths) {
-        if (imagePaths == null || imagePaths.isEmpty()) return;
+        if (imagePaths == null || imagePaths.equals("No images") || imagePaths.isEmpty()) {
+            JOptionPane.showMessageDialog(frame, "No images available for this waste item.");
+            return;
+        }
         
-        JDialog dialog = new JDialog((Frame)null, "Image Preview", true);
+        JDialog dialog = new JDialog(frame, "Image Preview", true);
         dialog.setLayout(new BorderLayout());
         
         JPanel imagePanel = new JPanel(new GridLayout(0, 2, 10, 10));
         imagePanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         
-        for (String path : imagePaths.split(", ")) {
-            ImageIcon icon = new ImageIcon(path);
-            Image scaledImage = icon.getImage()
-                .getScaledInstance(300, 300, Image.SCALE_SMOOTH);
-            JLabel imageLabel = new JLabel(new ImageIcon(scaledImage));
-            imagePanel.add(imageLabel);
+        String[] paths = imagePaths.split(", ");
+        boolean imagesLoaded = false;
+        
+        for (String path : paths) {
+            if (path != null && !path.trim().isEmpty()) {
+                try {
+                    ImageIcon originalIcon = new ImageIcon(path.trim());
+                    if (originalIcon.getIconWidth() <= 0) {
+                        System.out.println("Failed to load image: " + path);
+                        continue;
+                    }
+                    
+                    Image scaledImage = originalIcon.getImage()
+                        .getScaledInstance(300, -1, Image.SCALE_SMOOTH);
+                    JLabel imageLabel = new JLabel(new ImageIcon(scaledImage));
+                    imageLabel.setBorder(BorderFactory.createLineBorder(Color.GRAY));
+                    imagePanel.add(imageLabel);
+                    imagesLoaded = true;
+                } catch (Exception e) {
+                    System.out.println("Error loading image: " + path);
+                    e.printStackTrace();
+                }
+            }
+        }
+        
+        if (!imagesLoaded) {
+            JOptionPane.showMessageDialog(frame, "Failed to load images.");
+            return;
         }
         
         JScrollPane scrollPane = new JScrollPane(imagePanel);
+        scrollPane.setBorder(null);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        
         dialog.add(scrollPane, BorderLayout.CENTER);
         dialog.setSize(650, 500);
-        dialog.setLocationRelativeTo(null);
+        dialog.setLocationRelativeTo(frame);
         dialog.setVisible(true);
     }
 
